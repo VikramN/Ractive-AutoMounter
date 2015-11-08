@@ -1,0 +1,290 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <script src="ractive.min.js"></script>
+        <script src="automounter.js"></script>
+        <style>
+            
+            @import url(http://fonts.googleapis.com/css?family=Roboto+Condensed);
+    
+            body{
+                font-family: 'Roboto Condensed', sans-serif;
+                width: 90%;
+                margin: 10px auto;
+                font-size: 16px;
+                margin-top: 30px;
+            }
+    
+            a {
+                text-decoration: none;
+                color: #ff604c;
+            }
+            
+            input {
+                font-size: 16px;
+                padding: 5px;
+            }
+            
+            .col {
+                width: 40%;
+                display: inline-block;
+                vertical-align: top;
+                margin-left: 50px;
+            }
+        
+        </style>
+        
+        <style>
+            div[auto-mount] { display : none }
+            .tagContainer { display: inline; }
+            .tagInputContainer { display: inline; }
+            .tag { border: 1px solid #B8B9BA; border-radius: 5px; background-color: transparent; padding: 5px 5px 5px 10px; margin: 2px; display: inline-block; }.tagInput1 { outline: none; border: 0px; height: 20px; margin: 2px; }
+            .tagInput { outline: none; border: 0px; border-bottom: 1px solid #6DAFF3; margin: 5px; display: inline;  }
+            .deleteTag { border: 0; border-radius: 21px; color: #ff604c; padding: 0px 4px 1px 4px; text-decoration: none; outline: none; cursor: pointer; background-color: transparent; font-weight: bold; }
+            .deleteTag:hover { color: red; }
+            .deleteTag:before { content: '✖'; }
+        </style>
+        
+    </head>
+    <body>
+    
+        <!--Sample Twitter Component-->
+        <script type="text/ractive" id="myimg">
+            <div style="border:1px solid #ddd; padding: 5px; margin: 5px; display: inline-block">
+                <div style="font-size: 20px; font-weight:bold">@{{name}}</div>
+                <hr>
+                <img src={{src}} style="height: 60px" >
+                <hr>
+                <div>
+                    <a href="https://twitter.com/{{name}}">Follow Me</a>
+                </div>
+            
+            </div>
+        </script>        
+        <script>
+            var MyImg = Ractive.extend({
+                template: '#myimg'                
+            });
+        </script>
+    
+        
+        <!--Ractag Component-->
+        <script type="text/ractive" id="ractag">
+            <div>
+                {{#if flip}}
+                    <div>
+                        <div class="tagInputContainer">
+                            <input class="tagInput" type="text" on-keyup="onkey" on-blur="onblur" value={{tag}}>
+                        </div>
+                    </div>
+                    <div class="tagContainer" >
+                        {{#tags:i}}
+                        <div class="tag">
+                            <span>{{ this }}</span>
+                            <button style="display:inline;" class="deleteTag" on-click="remove" data-index={{i}}></button>
+                        </div>
+                        {{/tags}}
+                    </div>
+                {{ else }}
+                    <div class="tagContainer" >
+                        {{#tags:i}}
+                        <div class="tag">
+                            <span>{{ this }}</span>
+                            <button style="display:inline;" class="deleteTag" on-click="remove" data-index={{i}}></button>
+                        </div>
+                        {{/tags}}
+                    </div>
+                    <div class="tagInputContainer" >
+                        <input class="tagInput" type="text" on-keyup="onkey" on-blur="onblur" value={{tag}}>
+                    </div>
+                {{/if}}
+            </div>
+        </script>
+        
+        <!--Ractag.js-->
+        <script>
+            var RacTag = Ractive.extend({
+                template: '#ractag',
+                oninit: function() {
+                    var me = this;
+                    var t = me.get();
+                    
+                    if(!t.tags) me.set('tags', []);
+                    var breaks = t.breaks && t.breaks.length > 0 ? t.breaks : [',',' '];
+                    var tagRegex = new RegExp('[' + breaks.join('') + ']');
+                    
+                    var addTag = function(tag){
+                        var tags = tag.split(tagRegex);                        
+                        tags.forEach(function(x){
+                            if(x && x !== '') {
+                                var x2 = t.onTag? t.onTag(x) : x;
+                                if(x2 && x2 !== '') {
+                                    t.tags.push(x2);    
+                                }    
+                            }                            
+                        });
+                    };
+                    
+                    var hasDelim = function(txt) {                        
+                        for(var i =0; i < breaks.length; i++){
+                            if(txt.indexOf(breaks[i]) !== -1){
+                                return true;
+                            }
+                        }
+            
+                        return false;
+                    };
+                    
+                    this.on('onkey', function(ev){
+                        var e = ev.original;
+                        if(e.keyCode === 13){
+                            if(e.preventDefault) { e.preventDefault(); }
+                            addTag(t.tag);
+                            me.set('tag', '');
+                            return false;
+                        }
+                        
+                        if(t.tag.length > 1 && hasDelim(t.tag)){
+                            addTag(t.tag);
+                            me.set('tag', '');
+                        }
+                    });
+                    
+                    this.on('onblur', function(e){
+                        addTag(t.tag);
+                        me.set('tag', '');
+                    })
+                    
+                    this.on('remove', function(e){
+                        var ix = parseInt(e.node.attributes['data-index'].value);
+                        var tag = t.tags[ix];
+                        if(t.onRemove? t.onRemove(ix, tag) : true) { 
+                            t.tags.splice(ix, 1);
+                        }                        
+                    });
+                }
+            });
+        </script>
+        
+        
+    
+        <h1>RactiveJS Auto-Mounter</h1>
+		
+		<a href="https://github.com/VikramN/Ractive-AutoMounter">Source</a>
+        
+        <h3>How To</h3>
+        Suppose you have a Ractive component defined as 
+        <pre>
+var &lt;component-id> = Ractive.extend({ ... })
+        </pre>
+        
+        You would creat an instance as
+        <pre>
+var &lt;js-variable-name> = new &lt;component-id>({
+    el : '#&lt;mount-element-id>'
+})
+        </pre>
+        With auto-mounter you can avoid all javascript and do -
+        <pre>
+&lt;div id="&lt;mount-element-id>" auto-mount="&lt;component-id>" var-name="&lt;js-variable-name>" var-parent="&lt;js-var-parent>">
+    &lt;data type="&lt;js or json>">        
+        {
+            
+        }
+        
+
+    &lt;/data>
+&lt;/div>
+
+Just call AutoMounter.mount() after loading all components
+        </pre>
+        
+        <h1>Examples</h1>
+        <hr>
+        <h1>Follow some people on Twitter</h1>
+        <div style="display: inline-block">
+            <div id="img1" auto-mount="MyImg" var-name="img1" var-parent="my_imgs" style="display: inline-block">
+                <data>
+                    {
+                        "name" : "TheVikO_o",
+                        "src" : "https://pbs.twimg.com/profile_images/1900664193/FF_bigger.png"
+                    }
+                </data>
+            </div>
+            
+            <div id="img2" auto-mount="MyImg" var-name="img2" var-parent="my_imgs" style="display: inline-block">
+                <data>
+                    {
+                        "name" : "RactiveJS",
+                        "src" : "https://pbs.twimg.com/profile_images/615964160623448064/93gDces4_400x400.png"
+                    }
+                </data>
+            </div>
+            
+            <div id="img3" auto-mount="MyImg" var-name="img3" var-parent="my_imgs" style="display: inline-block">
+                <data>
+                    {
+                        "name" : "trutriciahelfer",
+                        "src" : "https://pbs.twimg.com/profile_images/555486552327868417/k2vL8F1q_400x400.png"
+                    }
+                </data>
+            </div>
+        </div>
+        <h3>Code</h3>
+        <pre>
+&lt;div id="img1" auto-mount="MyImg" var-name="img3" var-parent="my_imgs">
+    &lt;data type="json">
+        {
+            "name" : "trutriciahelfer",
+            "src" : "https://pbs.twimg.com/profile_images/555486552327868417/k2vL8F1q_400x400.png"
+        }
+    &lt;/data>
+&lt;/div>          
+        </pre>
+    
+        <h1>RacTag Example</h1>
+        <p>Tag component sample. Append "Tag:" to user's tags using events registered with data object<p>
+        <a href="https://github.com/VikramN/RacTag">RacTag on Github</a>
+        <br>
+        <br>
+        <div id="tag1" auto-mount="RacTag" var-name="tagger" var-parent="my_comps">
+            <data type="js">
+             {
+                tags : ['Enter', 'Some', 'Tags'],
+                onTag : function(e) {
+                    console.log("Added => " + e);
+                    return e;
+                }
+             }
+            </data>
+        </div>
+        <h3>Code</h3>
+        <pre>
+&lt;div id="tag1" auto-mount="RacTag" var-name="tagger" var-parent="my_comps">
+    &lt;data type="js">
+     {
+        tags : ['Enter', 'Some', 'Tags'],
+        onTag : function(e) {
+            console.log("Added => " + e);
+            return e;
+        }
+     }
+    &lt;/data>
+&lt;/div>            
+        </pre>
+    
+        <script>
+           
+            my_comps = {};            
+            my_imgs = {};
+            
+            AutoMounter.mount();
+            
+            
+        </script>    
+
+        <a href="https://github.com/VikramN/Ractive-AutoMounter">
+            <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/652c5b9acfaddf3a9c326fa6bde407b87f7be0f4/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png">
+        </a>        
+    </body>
+</html>
