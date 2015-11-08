@@ -16,7 +16,7 @@ AutoMounter = {
         return JSON.parse(node.textContent);
     }
 
-    var mount = function(node) {
+    var mountnode = function(node) {
         var c = node.attributes['auto-mount'].value;
         var d_node = node.getElementsByTagName('data');
         var data = d_node && d_node.length > 0 ? getData(d_node[0]) : { };
@@ -37,7 +37,7 @@ AutoMounter = {
     
     var nodes = document.querySelectorAll('[auto-mount]');
     for(var i = 0; i < nodes.length; i++){
-        mount(nodes[i]);
+        mountnode(nodes[i]);
     }
   }
 }
